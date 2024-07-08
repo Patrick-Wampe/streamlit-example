@@ -1,40 +1,59 @@
-import altair as alt
-import numpy as np
-import pandas as pd
 import streamlit as st
+import seaborn as sns
+from streamlit_authenticator import Authenticate
 
-"""
-# Welcome to Streamlit!
+from streamlit_option_menu import option_menu
 
-Edit `/streamlit_app.py` to customize this app to your heart's desire :heart:.
-If you have any questions, checkout our [documentation](https://docs.streamlit.io) and [community
-forums](https://discuss.streamlit.io).
 
-In the meantime, below is an example of what you can do with just a few lines of code:
-"""
+# Nos données utilisateurs doivent respecter ce format
 
-num_points = st.slider("Number of points in spiral", 1, 10000, 1100)
-num_turns = st.slider("Number of turns in spiral", 1, 300, 31)
+lesDonneesDesComptes = {'usernames': {'utilisateur': {'name': 'utilisateur',
+   'password': 'utilisateurMDP',
+   'email': 'utilisateur@gmail.com',
+   'failed_login_attemps': 0, # Sera géré automatiquement
+   'logged_in': False, # Sera géré automatiquement
+   'role': 'utilisateur'},
+  'root': {'name': 'root',
+   'password': 'rootMDP',
+   'email': 'admin@gmail.com',
+   'failed_login_attemps': 0, # Sera géré automatiquement
+   'logged_in': False, # Sera géré automatiquement
+   'role': 'administrateur'}}}
 
-indices = np.linspace(0, 1, num_points)
-theta = 2 * np.pi * num_turns * indices
-radius = indices
+authenticator = Authenticate(
+    lesDonneesDesComptes, # Les données des comptes
+    "cookie name", # Le nom du cookie, un str quelconque
+    "cookie key", # La clé du cookie, un str quelconque
+    30, # Le nombre de jours avant que le cookie expire 
+)
 
-x = radius * np.cos(theta)
-y = radius * np.sin(theta)
+authenticator.login()
 
-df = pd.DataFrame({
-    "x": x,
-    "y": y,
-    "idx": indices,
-    "rand": np.random.randn(num_points),
-})
+def accueil():
+    st.title("Bienvenu sur le contenu réservé aux utilisateurs connectés")
+    with st.sidebar:
+        selection = option_menu(
+            menu_title="Mon menu",
+            options = ["Accueil", "Photos"],
+            menu_icon  = "arrows-move"
+        )
+        authenticator.logout("Déconnexion")
+        
+    if selection == "Accueil":
+        st.write("Bienvenue sur la page d'accueil !")
+        st.image("https://img.static-af.com/otf/images/meta/IDname/CRITERIA-BEACH-1")
+    elif selection == "Photos":
+        st.write("Bienvenue sur mon album photo")
+        st.image("https://i.pinimg.com/originals/3f/60/0d/3f600dd8237be2a4ea2a574142e5edb6.jpg")
+        
 
-st.altair_chart(alt.Chart(df, height=700, width=700)
-    .mark_point(filled=True)
-    .encode(
-        x=alt.X("x", axis=None),
-        y=alt.Y("y", axis=None),
-        color=alt.Color("idx", legend=None, scale=alt.Scale()),
-        size=alt.Size("rand", legend=None, scale=alt.Scale(range=[1, 150])),
-    ))
+if st.session_state["authentication_status"]:
+    accueil()
+    
+    # Le bouton de déconnexion
+    
+
+elif st.session_state["authentication_status"] is False:
+    st.error("L'username ou le password est/sont incorrect")
+elif st.session_state["authentication_status"] is None:
+    st.warning('Les champs username et mot de passe doivent être remplie')
